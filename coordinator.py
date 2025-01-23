@@ -1,18 +1,16 @@
 import logging
 import struct
-import requests
-from enum import Enum
 from datetime import timedelta
+from enum import Enum
 
+import aiohttp
 from google.protobuf.internal.decoder import _DecodeVarint
-
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, CONF_HOST, CONF_SCAN_INTERVAL
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-
 
 class CarStatus(Enum):
     DISCONNECTED = 0
@@ -35,7 +33,6 @@ class CarStatus(Enum):
             return "undefined"
         return f"unknown_{self.value}"
 
-
 class ChargerStatus(Enum):
     READY = 0
     INITIALIZING = 1
@@ -52,11 +49,11 @@ class ChargerStatus(Enum):
         elif self is ChargerStatus.INITIALIZING:
             return "initializing"
         elif self is ChargerStatus.CHARGING:
-            return "charging"
+            return "active"
         elif self is ChargerStatus.CHARGING_BOOST:
-            return "charging_boost"
+            return "boost"
         elif self is ChargerStatus.CHARGING_EXCESS_PV:
-            return "charging_excess_pv"
+            return "excess_pv"
         elif self is ChargerStatus.OFF:
             return "off"
         elif self is ChargerStatus.ERROR:
@@ -65,8 +62,8 @@ class ChargerStatus(Enum):
 
 
 def decode_ansi_string(raw_bytes: bytes) -> str:
+    """Decode a string from ANSI-latin-1, removing control chars."""
     text = raw_bytes.decode("latin-1", errors="replace")
-    # Strip out non-printable characters
     return ''.join(ch for ch in text if ch >= ' ' and ch != '\x7f')
 
 
@@ -134,7 +131,7 @@ def parse_evse(buf: bytes, start: int = 0, end: int = None) -> dict:
 
 
 def parse_status(buf: bytes) -> dict:
-    """Parse top-level status, including EVSE sub-message."""
+    """Parse top-level status, including an 'evse' sub-message."""
     status = {"sn": None, "evse": None}
     pos = 0
     end = len(buf)
@@ -164,23 +161,23 @@ def parse_and_format(status: dict) -> dict:
     inverter_sn = status.get("sn") or "N/A"
     evse = status.get("evse") or {}
 
-    # Car status in short, lowercase form
+    # Car status
     raw_car_status = evse.get("carStatus")
     if raw_car_status is not None:
         try:
             car_enum = CarStatus(raw_car_status)
-            car_status_text = car_enum.label()  # e.g. "charging"
+            car_status_text = car_enum.label()  # e.g., "charging"
         except ValueError:
             car_status_text = f"unknown_{raw_car_status}"
     else:
         car_status_text = "n/a"
 
-    # Charger status also short, lowercase
+    # Charger status
     raw_charger_status = evse.get("chargerStatus")
     if raw_charger_status is not None:
         try:
             ch_enum = ChargerStatus(raw_charger_status)
-            charger_status_text = ch_enum.label()  # e.g. "initializing"
+            charger_status_text = ch_enum.label()
         except ValueError:
             charger_status_text = f"unknown_{raw_charger_status}"
     else:
@@ -189,6 +186,7 @@ def parse_and_format(status: dict) -> dict:
     charge_power = evse.get("chargePower")
     session_energy = evse.get("sessionEnergy")
 
+    # Error, if any
     error_msg = None
     subsystem = evse.get("subsystem")
     error_code = evse.get("errorCode")
@@ -209,10 +207,9 @@ def parse_and_format(status: dict) -> dict:
 
 
 class SolarEdgeEVChargerAUDataUpdateCoordinator(DataUpdateCoordinator):
-    """Coordinator to fetch data from the SolarEdge EV Charger (AU) endpoint."""
+    """Coordinator to fetch data from the EV Charger (AU) endpoint."""
 
     def __init__(self, hass: HomeAssistant, host: str, scan_interval: int):
-        """Initialize the coordinator."""
         super().__init__(
             hass,
             _LOGGER,
@@ -222,20 +219,20 @@ class SolarEdgeEVChargerAUDataUpdateCoordinator(DataUpdateCoordinator):
         self.host = host
 
     async def _async_update_data(self) -> dict:
-        """Fetch data asynchronously."""
-        return await self.hass.async_add_executor_job(self._fetch_data)
+        """Perform actual async fetch using aiohttp."""
+        return await self._fetch_data()
 
-    def _fetch_data(self) -> dict:
-        """Synchronous HTTP call to fetch and parse the Protobuf data."""
+    async def _fetch_data(self) -> dict:
+        """Load status from the charger, parse it."""
         url = f"http://{self.host}/web/v1/status"
         try:
-            resp = requests.get(url, timeout=10)
-            resp.raise_for_status()
-            raw_data = resp.content
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=10) as resp:
+                    resp.raise_for_status()
+                    raw_data = await resp.read()
 
-            status_dict = parse_status(raw_data)
-            display_data = parse_and_format(status_dict)
-            return display_data
+            parsed = parse_status(raw_data)
+            return parse_and_format(parsed)
 
         except Exception as err:
             raise UpdateFailed(f"Error fetching data from {url}: {err}")
