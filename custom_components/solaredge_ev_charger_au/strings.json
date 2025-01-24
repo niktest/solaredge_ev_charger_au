@@ -10,13 +10,6 @@
         }
       }
     },
-    "reconfigure": {
-      "title": "Configure SolarEdge EV Charger",
-      "data": {
-        "host": "Charger IP Address",
-        "scan_interval": "Polling Interval (seconds)"
-      }
-    },
     "error": {
       "cannot_connect": "Unable to connect. Please check the IP address."
     },
