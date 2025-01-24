@@ -2,8 +2,7 @@
   "name": "SolarEdge EV Charger (Australia)",
   "content_in_root": false,
   "render_readme": true,
-  "domains": ["sensor"],
-  "country": ["AU"],
+  "country": "AU",
   "homeassistant": "2021.5.0",
   "zip_release": false
 }
