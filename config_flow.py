@@ -56,10 +56,21 @@ class SolarEdgeEVChargerAUConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema({
             vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
-            vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
+            vol.Required(
+                CONF_SCAN_INTERVAL,
+                default=DEFAULT_SCAN_INTERVAL
+            ): vol.All(int, vol.Range(min=1, max=3600))
         })
 
-        return self.async_show_form(step_id="user", data_schema=data_schema, errors=errors)
+        return self.async_show_form(
+            step_id="user",
+            data_schema=data_schema,
+            errors=errors,
+            description_placeholders={
+                "host": "Enter the IP address of the SolarEdge EV Charger.",
+                "scan_interval": "Specify the polling interval in seconds (1-3600)."
+            }
+        )
 
     async def _async_test_connection(self, host: str):
         """Attempt to fetch and parse device status, returning the inverter SN."""
@@ -94,14 +105,26 @@ class SolarEdgeEVChargerAUOptionsFlowHandler(config_entries.OptionsFlow):
 
         data_schema = vol.Schema({
             vol.Required(CONF_HOST, default=current_host): str,
-            vol.Required(CONF_SCAN_INTERVAL, default=current_interval): int,
+            vol.Required(
+                CONF_SCAN_INTERVAL,
+                default=current_interval
+            ): vol.All(int, vol.Range(min=1, max=3600)),
             vol.Required(
                 CONF_UNIT_SYSTEM,
                 default=current_unit_system
             ): vol.In({
-                UNIT_SYSTEM_W:  "Watts / Watt-hours (W, Wh)",
+                UNIT_SYSTEM_W: "Watts / Watt-hours (W, Wh)",
                 UNIT_SYSTEM_KW: "Kilowatts / Kilowatt-hours (kW, kWh)"
             })
         })
 
-        return self.async_show_form(step_id="init", data_schema=data_schema, errors=errors)
+        return self.async_show_form(
+            step_id="init",
+            data_schema=data_schema,
+            errors=errors,
+            description_placeholders={
+                "host": "Enter the IP address of the SolarEdge EV Charger.",
+                "scan_interval": "Specify the polling interval in seconds (1-3600).",
+                "unit_system": "Choose the unit system for power and energy."
+            }
+        )

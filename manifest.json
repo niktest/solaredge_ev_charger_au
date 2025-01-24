@@ -1,14 +1,14 @@
 {
   "domain": "solaredge_ev_charger_au",
   "name": "SolarEdge EV Charger (Australia)",
-  "version": "0.2.0",
+  "codeowners": ["@niktest"],
   "config_flow": true,
+  "version": "0.2.0",
+  "integration_type": "device",
   "documentation": "https://github.com/niktest/solaredge_ev_charger_au#readme",
   "issue_tracker": "https://github.com/niktest/solaredge_ev_charger_au/issues",
   "iot_class": "local_polling",
   "requirements": [
     "protobuf>=3.20.0"
-  ],
-  "codeowners": ["@niktest"],
-  "icon": "https://brands.home-assistant.io/brands/_/solaredge/icon.png"
+  ]
 }

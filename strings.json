@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure SolarEdge EV Charger",
+        "description": "Enter the IP address and polling interval.",
+        "data": {
+          "host": "Charger IP Address",
+          "scan_interval": "Polling Interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect. Please check the IP address."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Modify Options",
+        "description": "Adjust settings for SolarEdge EV Charger.",
+        "data": {
+          "host": "Charger IP Address",
+          "scan_interval": "Polling Interval (seconds)",
+          "unit_system": "Unit System (W/Wh or kW/kWh)"
+        }
+      }
+    }
+  }
+}
