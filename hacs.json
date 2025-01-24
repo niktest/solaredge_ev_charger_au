@@ -1,6 +1,6 @@
 {
   "name": "SolarEdge EV Charger (Australia)",
-  "content_in_root": true,
+  "content_in_root": false,
   "render_readme": true,
   "domains": ["sensor"],
   "country": ["AU"],
