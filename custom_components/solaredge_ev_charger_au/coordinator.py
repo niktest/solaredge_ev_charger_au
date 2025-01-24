@@ -187,7 +187,7 @@ def parse_and_format(status: dict) -> dict:
     session_energy = evse.get("sessionEnergy")
 
     # Error, if any
-    error_msg = None
+    error_msg = ""
     subsystem = evse.get("subsystem")
     error_code = evse.get("errorCode")
     if subsystem is not None and error_code is not None and error_code != 0:
