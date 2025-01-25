@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configure SolarEdge EV Charger",
+        "title": "Initial configure SolarEdge EV Charger",
         "description": "Enter the IP address and polling interval.",
         "data": {
           "host": "Charger IP Address",

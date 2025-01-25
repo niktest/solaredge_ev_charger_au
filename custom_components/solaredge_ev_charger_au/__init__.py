@@ -3,7 +3,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.const import Platform
 
-from .const import DOMAIN, CONF_HOST, CONF_SCAN_INTERVAL
+from .const import DOMAIN, CONF_HOST, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
 from .coordinator import SolarEdgeEVChargerAUDataUpdateCoordinator
 
 PLATFORMS: list[str] = [
@@ -19,7 +19,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Create and set up a config entry (integration instance)."""
     host = entry.data[CONF_HOST]
-    scan_interval = entry.data.get(CONF_SCAN_INTERVAL, 30)
+    scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
     coordinator = SolarEdgeEVChargerAUDataUpdateCoordinator(
         hass=hass,
@@ -33,7 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    # Forward setup to sensor platform
+    # Forward setup to a sensor platform
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True

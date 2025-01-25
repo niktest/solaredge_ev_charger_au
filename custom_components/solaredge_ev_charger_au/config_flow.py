@@ -1,7 +1,12 @@
+from typing import Any
+
 import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntry, OptionsFlow
+from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import _FlowResultT
 
 from .const import (
     DOMAIN,
@@ -17,6 +22,53 @@ from .const import (
 from .coordinator import parse_status, parse_and_format
 
 
+def generate_config_schema(step_id: str, user_input: dict[str, Any]) -> vol.Schema:
+    """Generate config flow or repair schema."""
+    schema: dict[vol.Marker, Any] = {}
+
+    if step_id in ["reconfigure", "confirm", "user"]:
+        schema |= {
+            vol.Required(
+                CONF_HOST,
+                default=user_input.get(CONF_HOST, DEFAULT_HOST)
+            ): str}
+
+        schema |= {
+            vol.Required(
+                CONF_SCAN_INTERVAL,
+                default=user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+            ): vol.All(int, vol.Range(min=1, max=3600))
+        }
+
+    if step_id == "reconfigure":
+        schema |= {
+            vol.Required(
+                CONF_UNIT_SYSTEM,
+                default=user_input.get(CONF_UNIT_SYSTEM, DEFAULT_UNIT_SYSTEM)
+            ): vol.In({
+                UNIT_SYSTEM_W: "Watts / Watt-hours (W, Wh)",
+                UNIT_SYSTEM_KW: "Kilowatts / Kilowatt-hours (kW, kWh)"
+            })
+        }
+
+    return vol.Schema(schema)
+
+
+async def _async_test_connection(host: str):
+    """Attempt to fetch and parse device status, returning the inverter SN."""
+    url = f"http://{host}/web/v1/status"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, timeout=10) as resp:
+            resp.raise_for_status()
+            raw_data = await resp.read()
+
+    # Try parsing it
+    parsed = parse_status(raw_data)
+    display = parse_and_format(parsed)
+    # return top-level inverter SN as unique ID
+    return display.get("inverter_sn")
+
+
 class SolarEdgeEVChargerAUConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for SolarEdge EV Charger (Australia)."""
 
@@ -24,107 +76,73 @@ class SolarEdgeEVChargerAUConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
-        return SolarEdgeEVChargerAUOptionsFlowHandler(config_entry)
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        return SolarEdgeEVChargerAUOptionsFlowHandler()
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step where user inputs IP and poll interval."""
         errors = {}
 
         if user_input is not None:
-            host = user_input[CONF_HOST]
-            scan_interval = user_input[CONF_SCAN_INTERVAL]
-
             # Attempt a connection test to fetch the top-level inverter SN
             try:
-                inverter_sn = await self._async_test_connection(host)
+                host = user_input.get(CONF_HOST, DEFAULT_HOST)
+                inverter_sn = await _async_test_connection(host)
             except Exception:
-                errors["base"] = "cannot_connect"
+                errors[CONF_HOST] = "Unable to connect. Please check the IP address."
             else:
                 if inverter_sn:
                     # Set unique_id to the inverter's S/N so we avoid duplicates
                     await self.async_set_unique_id(inverter_sn)
                     self._abort_if_unique_id_configured()
 
-                return self.async_create_entry(
-                    title=f"SolarEdge EV Charger (AU) - {host}",
-                    data={
-                        CONF_HOST: host,
-                        CONF_SCAN_INTERVAL: scan_interval
-                    }
-                )
-
-        data_schema = vol.Schema({
-            vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
-            vol.Required(
-                CONF_SCAN_INTERVAL,
-                default=DEFAULT_SCAN_INTERVAL
-            ): vol.All(int, vol.Range(min=1, max=3600))
-        })
+                    return self.async_create_entry(
+                        title=f"SolarEdge EV Charger (AU) - {host}",
+                        data=user_input
+                    )
+        else:
+            user_input = {
+                CONF_HOST: DEFAULT_HOST,
+                CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+            }
 
         return self.async_show_form(
             step_id="user",
-            data_schema=data_schema,
-            errors=errors,
-            description_placeholders={
-                "host": "Enter the IP address of the SolarEdge EV Charger.",
-                "scan_interval": "Specify the polling interval in seconds (1-3600)."
-            }
+            data_schema=generate_config_schema("user", user_input),
+            errors=errors
         )
 
-    async def _async_test_connection(self, host: str):
-        """Attempt to fetch and parse device status, returning the inverter SN."""
-        url = f"http://{host}/web/v1/status"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=10) as resp:
-                resp.raise_for_status()
-                raw_data = await resp.read()
 
-        # Try parsing it
-        parsed = parse_status(raw_data)
-        display = parse_and_format(parsed)
-        # return top-level inverter SN as unique ID
-        return display.get("inverter_sn")
-
-
-class SolarEdgeEVChargerAUOptionsFlowHandler(config_entries.OptionsFlow):
+class SolarEdgeEVChargerAUOptionsFlowHandler(OptionsFlow):
     """Handle options flow for changing scan interval, units, etc."""
 
-    def __init__(self, config_entry):
-        self.config_entry = config_entry
-
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(
+            self, user_input: dict[str, Any] | None = None
+    ) -> _FlowResultT:
         errors = {}
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-
-        # Current settings, fallback if none exist
-        current_interval = self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-        current_unit_system = self.config_entry.options.get(CONF_UNIT_SYSTEM, DEFAULT_UNIT_SYSTEM)
-        current_host = self.config_entry.data.get(CONF_HOST, DEFAULT_HOST)
-
-        data_schema = vol.Schema({
-            vol.Required(CONF_HOST, default=current_host): str,
-            vol.Required(
-                CONF_SCAN_INTERVAL,
-                default=current_interval
-            ): vol.All(int, vol.Range(min=1, max=3600)),
-            vol.Required(
-                CONF_UNIT_SYSTEM,
-                default=current_unit_system
-            ): vol.In({
-                UNIT_SYSTEM_W: "Watts / Watt-hours (W, Wh)",
-                UNIT_SYSTEM_KW: "Kilowatts / Kilowatt-hours (kW, kWh)"
-            })
-        })
+            # Attempt a connection test to fetch the top-level inverter SN
+            try:
+                await _async_test_connection(user_input.get(CONF_HOST, DEFAULT_HOST))
+            except Exception:
+                errors[CONF_HOST] = "Unable to connect. Please check the IP address."
+            else:
+                return self.async_create_entry(title="", data=user_input)
+        else:
+            user_input = {
+                CONF_SCAN_INTERVAL: self.config_entry.options.get(
+                    CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                ),
+                CONF_UNIT_SYSTEM: self.config_entry.options.get(
+                    CONF_UNIT_SYSTEM, DEFAULT_UNIT_SYSTEM
+                ),
+                CONF_HOST: self.config_entry.options.get(
+                    CONF_HOST, DEFAULT_HOST
+                )
+            }
 
         return self.async_show_form(
             step_id="init",
-            data_schema=data_schema,
-            errors=errors,
-            description_placeholders={
-                "host": "Enter the IP address of the SolarEdge EV Charger.",
-                "scan_interval": "Specify the polling interval in seconds (1-3600).",
-                "unit_system": "Choose the unit system for power and energy."
-            }
+            data_schema=generate_config_schema("reconfigure", user_input),
+            errors=errors
         )
