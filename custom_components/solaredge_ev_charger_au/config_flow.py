@@ -4,7 +4,6 @@ import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, OptionsFlow
-from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import _FlowResultT
 
@@ -26,21 +25,20 @@ def generate_config_schema(step_id: str, user_input: dict[str, Any]) -> vol.Sche
     """Generate config flow or repair schema."""
     schema: dict[vol.Marker, Any] = {}
 
-    if step_id in ["reconfigure", "confirm", "user"]:
+    if step_id in ["reconfigure", "user"]:
         schema |= {
             vol.Required(
                 CONF_HOST,
                 default=user_input.get(CONF_HOST, DEFAULT_HOST)
             ): str}
 
+    if step_id in ["options"]:
         schema |= {
             vol.Required(
                 CONF_SCAN_INTERVAL,
                 default=user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
             ): vol.All(int, vol.Range(min=1, max=3600))
         }
-
-    if step_id == "reconfigure":
         schema |= {
             vol.Required(
                 CONF_UNIT_SYSTEM,
@@ -101,15 +99,45 @@ class SolarEdgeEVChargerAUConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         data=user_input
                     )
         else:
-            user_input = {
-                CONF_HOST: DEFAULT_HOST,
-                CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
-            }
+            user_input = {CONF_HOST: DEFAULT_HOST}
 
         return self.async_show_form(
             step_id="user",
             data_schema=generate_config_schema("user", user_input),
             errors=errors
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        """Handle the reconfigure flow step."""
+        errors = {}
+        config_entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )
+
+        if user_input is not None:
+            # Attempt a connection test to fetch the top-level inverter SN
+            try:
+                await _async_test_connection(user_input.get(CONF_HOST, DEFAULT_HOST))
+            except Exception:
+                errors[CONF_HOST] = "Unable to connect. Please check the IP address."
+            else:
+                return self.async_update_reload_and_abort(
+                    config_entry,
+                    unique_id=config_entry.unique_id,
+                    data={**config_entry.data, **user_input},
+                    reason="Re-configuration was successful",
+                )
+        else:
+            user_input = {
+                CONF_HOST: config_entry.data.get(CONF_HOST, DEFAULT_HOST),
+            }
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=generate_config_schema("reconfigure", user_input),
+            errors=errors,
         )
 
 
@@ -121,28 +149,19 @@ class SolarEdgeEVChargerAUOptionsFlowHandler(OptionsFlow):
     ) -> _FlowResultT:
         errors = {}
         if user_input is not None:
-            # Attempt a connection test to fetch the top-level inverter SN
-            try:
-                await _async_test_connection(user_input.get(CONF_HOST, DEFAULT_HOST))
-            except Exception:
-                errors[CONF_HOST] = "Unable to connect. Please check the IP address."
-            else:
-                return self.async_create_entry(title="", data=user_input)
+            return self.async_create_entry(title="", data=user_input)
         else:
             user_input = {
-                CONF_SCAN_INTERVAL: self.config_entry.options.get(
-                    CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
-                ),
                 CONF_UNIT_SYSTEM: self.config_entry.options.get(
                     CONF_UNIT_SYSTEM, DEFAULT_UNIT_SYSTEM
                 ),
-                CONF_HOST: self.config_entry.options.get(
-                    CONF_HOST, DEFAULT_HOST
-                )
+                CONF_SCAN_INTERVAL: self.config_entry.options.get(
+                    CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                ),
             }
 
         return self.async_show_form(
             step_id="init",
-            data_schema=generate_config_schema("reconfigure", user_input),
+            data_schema=generate_config_schema("options", user_input),
             errors=errors
         )
