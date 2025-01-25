@@ -42,12 +42,13 @@ async def async_get_config_entry_diagnostics(
     # Fetch associated devices
     device_registry = async_get(hass)
     associated_devices = [
-        {
-            "id": device.id,
-            "name": device.name,
-            "model": device.model,
-            "manufacturer": device.manufacturer,
-        }
+        dict(
+            id=device.id,
+            name=device.name,
+            model=device.model,
+            manufacturer=device.manufacturer,
+            serial_number=device.serial_number
+        )
         for device in device_registry.devices.values()
         if entry.entry_id in device.config_entries
     ]

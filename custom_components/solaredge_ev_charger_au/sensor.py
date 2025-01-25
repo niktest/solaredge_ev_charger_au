@@ -123,10 +123,10 @@ class SolarEdgeEVChargerSensor(CoordinatorEntity, SensorEntity):
         charger_sn = self.coordinator.data.get("charger_sn", "unknown_charger_sn")
         inverter_sn = self.coordinator.data.get("inverter_sn", "unknown_inverter_sn")
 
-        return {
-            "identifiers": {(DOMAIN, f"{charger_sn}_{inverter_sn}")},
-            "name": "SolarEdge EV Charger",
-            "manufacturer": "SolarEdge",
-            "model": "EV Charger AU",
-            "sw_version": "1.0.0",
-        }
+        return dict(
+            identifiers={(DOMAIN, f"{charger_sn}_{inverter_sn}")},
+            name="SolarEdge EV Charger",
+            manufacturer="SolarEdge",
+            model="EV Charger AU",
+            serial_number = inverter_sn,
+        )
