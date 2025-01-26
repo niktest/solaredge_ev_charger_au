@@ -128,5 +128,5 @@ class SolarEdgeEVChargerSensor(CoordinatorEntity, SensorEntity):
             name="SolarEdge EV Charger",
             manufacturer="SolarEdge",
             model="EV Charger AU",
-            serial_number = inverter_sn,
+            serial_number = charger_sn,
         )
