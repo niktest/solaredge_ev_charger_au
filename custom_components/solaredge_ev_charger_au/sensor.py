@@ -1,4 +1,8 @@
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorDeviceClass,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -9,9 +13,9 @@ from .coordinator import SolarEdgeEVChargerAUDataUpdateCoordinator
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up SolarEdge EV Charger sensors from a config entry."""
     coordinator: SolarEdgeEVChargerAUDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
@@ -37,6 +41,8 @@ async def async_setup_entry(
             "charge_power",
             "SolarEdge EV Charger Charge Power",
             "Real-time power delivered to the car.",
+            SensorDeviceClass.POWER,
+            SensorStateClass.MEASUREMENT,
         ),
         SolarEdgeEVChargerSensor(
             coordinator,
@@ -44,6 +50,8 @@ async def async_setup_entry(
             "session_energy",
             "SolarEdge EV Charger Session Energy",
             "Total energy delivered in the current session.",
+            SensorDeviceClass.ENERGY,
+            SensorStateClass.TOTAL,
         ),
         SolarEdgeEVChargerSensor(
             coordinator,
@@ -75,12 +83,14 @@ class SolarEdgeEVChargerSensor(CoordinatorEntity, SensorEntity):
     """Representation of a SolarEdge EV Charger sensor."""
 
     def __init__(
-        self,
-        coordinator: SolarEdgeEVChargerAUDataUpdateCoordinator,
-        entry: ConfigEntry,
-        key: str,
-        name: str,
-        description: str,
+            self,
+            coordinator: SolarEdgeEVChargerAUDataUpdateCoordinator,
+            entry: ConfigEntry,
+            key: str,
+            name: str,
+            description: str,
+            device_class: SensorDeviceClass | None = None,
+            state_class: SensorStateClass | None = None,
     ) -> None:
         """Initialize the SolarEdge EV Charger sensor."""
         super().__init__(coordinator)
@@ -89,6 +99,10 @@ class SolarEdgeEVChargerSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._description = description
         self._unit_system = entry.options.get(CONF_UNIT_SYSTEM, UNIT_SYSTEM_KW)
+
+        # Set attributes for Energy Dashboard compatibility
+        self._attr_device_class = device_class
+        self._attr_state_class = state_class
 
     @property
     def native_value(self):
@@ -114,7 +128,7 @@ class SolarEdgeEVChargerSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        """Return the sensor state attributes."""
+        """Return additional attributes."""
         return {"description": self._description}
 
     @property
