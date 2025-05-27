@@ -2,36 +2,32 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect SolarEdge EV Charger",
-        "description": "Enter your charger's network details. The IP address can be found in your router's DHCP list or network settings.",
+        "title": "Initial configure SolarEdge EV Charger",
+        "description": "Enter the IP address and polling interval.",
         "data": {
-          "host": "Charger IP Address (e.g., 192.168.1.100)",
-          "scan_interval": "Update Interval (seconds)"
+          "host": "Charger IP Address",
+          "scan_interval": "Polling Interval (seconds)"
         }
       },
       "reconfigure": {
-        "title": "Update Charger Settings",
-        "description": "Modify your charger's connection settings.",
+        "title": "Configure SolarEdge EV Charger",
+        "description": "Enter the IP address and polling interval.",
         "data": {
-          "host": "Charger IP Address (e.g., 192.168.1.100)",
-          "scan_interval": "Update Interval (seconds)"
+          "host": "Charger IP Address",
+          "scan_interval": "Polling Interval (seconds)"
         }
       }
-    },
-    "error": {
-      "cannot_connect": "Failed to connect to the charger. Please verify the IP address and ensure the charger is powered on.",
-      "invalid_host": "Invalid IP address format",
-      "unknown": "Unexpected error occurred"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Charger Settings",
-        "description": "Customize how your SolarEdge EV Charger data is displayed and updated.",
+        "title": "Modify Options",
+        "description": "Adjust settings for SolarEdge EV Charger.",
         "data": {
-          "scan_interval": "Update Interval (1-3600 seconds)",
-          "unit_system": "Power & Energy Units"
+          "host": "Charger IP Address",
+          "scan_interval": "Polling Interval (seconds)",
+          "unit_system": "Unit System (W/Wh or kW/kWh)"
         }
       }
     }
