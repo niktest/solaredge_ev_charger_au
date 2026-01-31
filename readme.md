@@ -1,10 +1,31 @@
-# SolarEdge EV Charger (Australia) - Home Assistant Integration
+# SolarEdge EV Charger (Australia)
+
+[![GitHub Release][releases-shield]][releases]
+![Project Maintenance][maintenance-shield]
 
 A custom component for Home Assistant to integrate **SolarEdge EV Charger (AU)** devices using the local Protobuf status endpoint. This solution was tested with the Australian version of the SolarEdge EV Charger (model number starting with `EVSA-32A-...`).
 
-<div align="center">
-  <img src="docs/images/SolarEdge-EV-Charger-AU.png" alt="SolarEdge EV Charger (Australia)">
-</div>
+![SolarEdge EV Charger (Australia)][charger-image-preview]
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+  - [HACS Installation (Recommended)](#hacs-installation-recommended)
+  - [Manual Installation](#manual-installation)
+- [Setup](#setup)
+- [Options](#options)
+- [Available Sensors](#available-sensors)
+- [Home Assistant Sensors](#home-assistant-sensors)
+- [Important: SolarEdge EV Charger vs. SolarEdge Inverter](#important-solaredge-ev-charger-vs-solaredge-inverter)
+- [Troubleshooting](#troubleshooting)
+  - [Before Installing the Integration](#before-installing-the-integration)
+  - [Common Issues and Solutions](#common-issues-and-solutions)
+  - [Testing Checklist](#testing-checklist)
+  - [Getting Help](#getting-help)
+- [Technical Details](#technical-details)
+- [Known Limitations](#known-limitations)
+- [Support](#support)
 
 ## Features
 
@@ -93,18 +114,19 @@ Recent improvements align the integration with Home Assistant best practices:
 - **Device Info Update**: The Device Info page now uses the charger’s serial number as the primary identifier, providing a precise reflection of your hardware.
 - **Configuration Refinements**: Settings and options have been restructured for a smoother setup and reconfiguration experience, optimizing both storage and performance.
 
-## ⚠️ Important: SolarEdge EV Charger vs. SolarEdge Inverter
+## Important: SolarEdge EV Charger vs. SolarEdge Inverter
 
-**This integration is ONLY for the SolarEdge EV Charger, NOT the SolarEdge Inverter.**
-
-These are two separate devices with different IP addresses:
-
-| Device                   | Purpose              | IP Address                  | Web Interface          |
-|--------------------------|----------------------|-----------------------------|------------------------|
-| **SolarEdge Inverter**   | Solar power inverter | Usually `192.168.xxx.xxx`   | Uses Modbus/API        |
-| **SolarEdge EV Charger** | EV charging station  | Separate IP on your network | Uses protobuf endpoint |
-
-**Common mistake**: Users often enter the inverter's IP address instead of the charger's IP address. Make sure you are using the **EV Charger's IP address**, not the inverter's.
+> [!WARNING]
+> **This integration is ONLY for the SolarEdge EV Charger, NOT the SolarEdge Inverter.**
+>
+> These are two separate devices with different IP addresses:
+>
+> | Device                   | Purpose              | IP Address                  | Web Interface          |
+> |--------------------------|----------------------|-----------------------------|------------------------|
+> | **SolarEdge Inverter**   | Solar power inverter | Usually `192.168.xxx.xxx`   | Uses Modbus/API        |
+> | **SolarEdge EV Charger** | EV charging station  | Separate IP on your network | Uses protobuf endpoint |
+>
+> **Common mistake**: Users often enter the inverter's IP address instead of the charger's IP address. Make sure you are using the **EV Charger's IP address**, not the inverter's.
 
 ## Troubleshooting
 
@@ -129,21 +151,21 @@ http://YOUR_CHARGER_IP/#/commissioning/status
 
 **Example**: `http://10.0.0.17/#/commissioning/status`
 
-✅ **Success**: You should see a page titled "Smart EV Charger" showing:
-- Serial Number (SN)
-- Car connection status (Connected/Disconnected)
-- Charger status (Ready/Charging)
-- Last charge energy
-- Server communication status
-- Communication settings (Ethernet, RS485-1, RS485-2, etc.)
+> [!TIP]
+> **Success**: You should see a page titled "Smart EV Charger" showing:
+> - Serial Number (SN)
+> - Car connection status (Connected/Disconnected)
+> - Charger status (Ready/Charging)
+> - Last charge energy
+> - Server communication status
+> - Communication settings (Ethernet, RS485-1, RS485-2, etc.)
 
-<div align="center">
-  <img src="docs/images/charger-status-page.png" alt="SolarEdge EV Charger Status Page Example" width="800">
-  <br>
-  <em>Example of a working SolarEdge EV Charger web interface at http://192.168.0.111/#/commissioning/status</em>
-</div>
+![SolarEdge EV Charger Status Page][status-page-image]
 
-❌ **Failure**: If the page doesn't load, the integration will NOT work. See common issues below.
+*Example of a working SolarEdge EV Charger web interface at http://192.168.0.111/#/commissioning/status*
+
+> [!CAUTION]
+> **Failure**: If the page doesn't load, the integration will NOT work. See common issues below.
 
 ### Common Issues and Solutions
 
@@ -192,12 +214,13 @@ http://YOUR_CHARGER_IP/#/commissioning/status
 
 #### Issue 4: Charger Connected via RS485-2 (Not Ethernet/Wi-Fi)
 
-**Important**: This integration requires the charger to be accessible via **Ethernet or Wi-Fi**, NOT just RS485.
-
-If your charger's "Server Comm." shows only RS485 communication:
-1. Connect the charger to your network via Ethernet cable or Wi-Fi
-2. The charger can maintain both RS485 (for inverter communication) AND Ethernet/Wi-Fi (for this integration) simultaneously
-3. Check your charger's commissioning settings to enable network connectivity
+> [!IMPORTANT]
+> This integration requires the charger to be accessible via **Ethernet or Wi-Fi**, NOT just RS485.
+>
+> If your charger's "Server Comm." shows only RS485 communication:
+> 1. Connect the charger to your network via Ethernet cable or Wi-Fi
+> 2. The charger can maintain both RS485 (for inverter communication) AND Ethernet/Wi-Fi (for this integration) simultaneously
+> 3. Check your charger's commissioning settings to enable network connectivity
 
 ### Testing Checklist
 
@@ -240,3 +263,11 @@ If you've completed the testing checklist and still have issues:
 
 For bugs or feature requests, please open an issue in this repository.  
 Code owner: [@niktest](https://github.com/niktest/solaredge_ev_charger_au)
+
+---
+
+[releases-shield]: https://img.shields.io/github/release/niktest/solaredge_ev_charger_au.svg?style=for-the-badge
+[releases]: https://github.com/niktest/solaredge_ev_charger_au/releases
+[maintenance-shield]: https://img.shields.io/badge/maintainer-%40niktest-blue.svg?style=for-the-badge
+[charger-image-preview]: https://raw.githubusercontent.com/niktest/solaredge_ev_charger_au/master/docs/images/SolarEdge-EV-Charger-AU.png
+[status-page-image]: https://raw.githubusercontent.com/niktest/solaredge_ev_charger_au/master/docs/images/charger-status-page.png
